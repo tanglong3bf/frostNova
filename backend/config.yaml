@@ -282,5 +282,21 @@ plugins:
       show_microseconds: true
       custom_time_format: "%Y%m%d %H:%M:%S"
       use_real_ip: false
+  - name: tl::jwt::JwtUtil
+    config:
+      # secret: The secret key used to sign and verify JWT tokens. NOT SUGGESTED to set in config file.
+      # secret: your_secret_key
+      # iat is MUST NOT set. It will be set in code automatically.
+      payload:
+        # three string fields are not necessary.
+        iss: tanglong3bf
+        sub: demo
+        aud: visitor
+        # exp: expired time in seconds, if it is negative, means always not expired. 1800 by default.
+        exp: 1800
+        # nbf: not before time in seconds, if it is negative, means not set this field to payload. -1 by default.
+        nbf: -1
+        # jti: JWT ID, if it is false, means not set this field to payload. If it is true, the UUID will be used to generate the jti field. False by default.
+        jti: false
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.
 custom_config: {}

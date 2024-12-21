@@ -1,3 +1,5 @@
 build/
 models/*.cc
 models/*.h
+Buldrokkas_tee/
+DrogonJwtUtil/

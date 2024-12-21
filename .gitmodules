@@ -1,0 +1,6 @@
+[submodule "backend/Buldrokkas_tee"]
+	path = backend/Buldrokkas_tee
+	url = https://github.com/tanglong3bf/Buldrokkas_tee.git
+[submodule "backend/DrogonJwtUtil"]
+	path = backend/DrogonJwtUtil
+	url = https://github.com/tanglong3bf/DrogonJwtUtil.git
