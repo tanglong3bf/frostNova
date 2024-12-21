@@ -1,0 +1,4 @@
+-std=c++2a
+-xc++
+-I./DrogonJwtUtil/src
+-I./Buldrokkas_tee/src
