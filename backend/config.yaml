@@ -33,7 +33,7 @@ db_clients:
     passwd: ""
     # is_fast: false by default, if it is true, the client is faster but user can't call
     # any synchronous interface of it.
-    is_fast: true
+    is_fast: false
     # client_encoding: The character set used by the client. it is empty string by default which
     # means use the default character set.
     client_encoding: utf8
@@ -288,15 +288,39 @@ plugins:
       # secret: your_secret_key
       # iat is MUST NOT set. It will be set in code automatically.
       payload:
-        # three string fields are not necessary.
-        iss: tanglong3bf
-        sub: demo
-        aud: visitor
         # exp: expired time in seconds, if it is negative, means always not expired. 1800 by default.
         exp: 1800
         # nbf: not before time in seconds, if it is negative, means not set this field to payload. -1 by default.
         nbf: -1
         # jti: JWT ID, if it is false, means not set this field to payload. If it is true, the UUID will be used to generate the jti field. False by default.
-        jti: false
+        jti: true
+  - name: tl::secure::Buldrokkas_tee
+    config:
+      # The service class to obtain user information. Default value:
+      # "tl::secure::InMemoryUserService"
+      # You can inherit `tl::secure::UserService` implements the
+      # custom user service, just change this item to your custom class
+      # name.
+      user_service: CustomUserService
+      # Password encoder. Default value: "tl::secure::NonePasswordEncoder"
+      # Optional values:
+      # "tl::secure::NonePasswordEncoder"
+      # "tl::secure::Md5PasswordEncoder"
+      # You can inherit `tl::secure::PasswordEncoder` implements the custom
+      # password encoder, just change this item to your custom class name.
+      password_encoder: tl::secure::Md5PasswordEncoder
+      # Authentication. Default value: "tl::secure::DefaultAuthentication"
+      # You can inherit `tl::secure::Authentication` implements the custom
+      # authentication, just change this item to your custom class name.
+      authentication: tl::secure::DefaultAuthentication
+      # TODO: NOT SUPPORT YET
+      white_list: []
+      # Path authority configuration, "path" and "auth_expression" are
+      # required, "methods" is optional If "methods" is not set, all methods
+      # are subject to authentication control by default. Default value: []
+      path_authorities:
+        - path: "/test"
+          methods: "GET"
+          auth_expression: "hasRole('admin') or hasAuthority('test')"
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.
 custom_config: {}
