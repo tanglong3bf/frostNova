@@ -32,6 +32,7 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
         co_return HttpResponse::newHttpJsonResponse(json);
     }
     Json::Value json;
+    json["code"] = -1;
     json["error"] = "用户名或密码错误，登录失败。";
     co_return HttpResponse::newHttpJsonResponse(json);
 }

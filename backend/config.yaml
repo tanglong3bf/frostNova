@@ -313,14 +313,20 @@ plugins:
       # You can inherit `tl::secure::Authentication` implements the custom
       # authentication, just change this item to your custom class name.
       authentication: tl::secure::DefaultAuthentication
-      # TODO: NOT SUPPORT YET
-      white_list: []
+      # The default login check filter will use BASIC authentication. You
+      # can modify this item to use a user-defined filter.
+      login_check_filter: JwtLoginCheckFilter
+      # The path in this array will not be subject to authentication
+      # control.
+      exempt:
+        - /login
       # Path authority configuration, "path" and "auth_expression" are
-      # required, "methods" is optional If "methods" is not set, all methods
-      # are subject to authentication control by default. Default value: []
+      # required, "methods" is optional. If "methods" is not set, all
+      # methods are subject to authentication control by default. Default
+      # value: []
       path_authorities:
-        - path: "/test"
-          methods: "GET"
-          auth_expression: "hasRole('admin') or hasAuthority('test')"
+        - path: /test
+          methods: GET
+          auth_expression: hasRole('admin') or hasAuthority('test')
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.
 custom_config: {}
