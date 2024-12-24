@@ -1,14 +1,25 @@
 import { useCommonStore } from '@/stores/common'
 import axios, { type AxiosResponse } from 'axios'
 import { storeToRefs } from 'pinia'
+import { ElMessage } from 'element-plus'
 
-interface CustomResponse {
+interface BaseResponse {
   code?: number
-  message?: string
   data?: any
 }
 
-type NullableCustomResponse = CustomResponse | null
+interface SuccessResponse extends BaseResponse {
+  message: string
+  error?: never
+}
+
+interface ErrorResponse extends BaseResponse {
+  error: string
+  message?: never
+}
+type Response = SuccessResponse | ErrorResponse
+
+type NullableResponse = Response | null
 
 const instance = axios.create({
   baseURL: 'http://localhost:8000',
@@ -26,24 +37,26 @@ instance.interceptors.request.use(
     return config
   },
   error => {
+    ElMessage.error(error || 'Error')
     return Promise.reject(error)
   }
 )
 
 instance.interceptors.response.use(
-  (response: AxiosResponse<NullableCustomResponse>) => {
+  (response: AxiosResponse<NullableResponse>) => {
     if (response.status === 204) {
       return null
     }
-    const { code, message, data } = response.data || {}
+    const { code, message, error, data } = response.data || {}
     // 如果 code 小于 0，则表示发生了错误
     if (code !== undefined && code < 0) {
       console.log('code: ', code)
-      return Promise.reject(new Error(message || 'Error'))
+      ElMessage.error(error || 'Error')
+      return Promise.reject(new Error(error || 'Error'))
     } else {
-      console.log('message: ', message || 'Success')
-      return data || null
-    }
+      ElMessage.success(message || 'Success')
+      return data
+     }
   },
   error => {
     return Promise.reject(error)

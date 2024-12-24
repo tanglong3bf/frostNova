@@ -1,5 +1,4 @@
 import request from '@/utils/request'
-import type { AxiosResponse } from 'axios';
 
 export interface LoginForm {
   username: string;
@@ -12,7 +11,7 @@ export interface LoginResponse {
 
 export const login = (username: string, password: string) => {
   return request.post<LoginResponse, LoginResponse, LoginForm>(
-    '/auth/login',
+    '/login',
     {
       username,
       password
