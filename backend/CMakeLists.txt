@@ -51,6 +51,7 @@ aux_source_directory(models MODEL_SRC)
 aux_source_directory(Buldrokkas_tee/src SECURE_PLUGIN)
 aux_source_directory(DrogonJwtUtil/src JWT_PLUGIN)
 aux_source_directory(secure SECURE_CONFIG)
+aux_source_directory(exception EXCEPTION_SRC)
 
 drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/views
                     ${CMAKE_CURRENT_BINARY_DIR})
@@ -74,7 +75,8 @@ target_sources(${PROJECT_NAME}
                ${MODEL_SRC}
 			   ${SECURE_PLUGIN}
                ${JWT_PLUGIN}
-			   ${SECURE_CONFIG})
+			   ${SECURE_CONFIG}
+			   ${EXCEPTION_SRC})
 # ##############################################################################
 # uncomment the following line for dynamically loading views 
 # set_property(TARGET ${PROJECT_NAME} PROPERTY ENABLE_EXPORTS ON)
