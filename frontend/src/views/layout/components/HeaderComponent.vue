@@ -1,6 +1,9 @@
 <script lang="ts" setup>
-import { ref, defineEmits } from 'vue'
-import { Expand, Fold, ArrowRight, CaretTop, CaretBottom } from '@element-plus/icons-vue'
+import { defineEmits, defineProps } from 'vue'
+import { useRoute } from 'vue-router'
+import { Expand, Fold, FullScreen } from '@element-plus/icons-vue'
+
+const route = useRoute()
 
 // 和侧边栏菜单相关
 const props = defineProps({
@@ -15,58 +18,104 @@ const emits = defineEmits(['toggleAsideCollapse'])
 const toggleAsideCollapse = () => {
   emits('toggleAsideCollapse')
 }
-
-// 头像菜单相关
-const menuCollapse = ref(false)
-const toggleMenuCollapse = (val: boolean) => {
-  menuCollapse.value = val
-}
-
 </script>
 
 <template>
-  <el-container>
-    <el-button @click="toggleAsideCollapse" plain>
-      <el-icon v-if="asideCollapse"><Fold /></el-icon>
-      <el-icon v-else><Expand /></el-icon>
-    </el-button>
-    <el-breadcrumb :separator-icon="ArrowRight">
-      <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>后台管理</el-breadcrumb-item>
-      <el-breadcrumb-item>用户管理</el-breadcrumb-item>
-    </el-breadcrumb>
-
-    <el-dropdown
-      placement="bottom-end"
-      class="header-right"
-      @click="toggleMenuCollapse"
-      trigger="click"
-      @visible-change="toggleMenuCollapse"
+  <div class="header-left">
+    <el-icon
+        class="collapse-btn"
+        @click="toggleAsideCollapse"
     >
-      <div>
-        <el-avatar shape="square" />
-        <el-icon v-if="menuCollapse"><CaretBottom /></el-icon>
-        <el-icon v-else><CaretTop /></el-icon>
-      </div>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item>个人中心</el-dropdown-item>
-          <el-dropdown-item>退出登录</el-dropdown-item>
-        </el-dropdown-menu>
+      <Fold v-if="!asideCollapse"/>
+      <Expand v-else/>
+    </el-icon>
+    <el-breadcrumb separator="/">
+      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
+      <template v-if="route.meta.title && route.name !== 'home'">
+        <el-breadcrumb-item>{{ route.meta.title }}</el-breadcrumb-item>
       </template>
-    </el-dropdown>
-  </el-container>
+    </el-breadcrumb>
+  </div>
+  <div class="header-right">
+    <el-tooltip content="全屏" placement="bottom">
+      <el-icon class="header-icon"><FullScreen /></el-icon>
+    </el-tooltip>
+
+    <div class="user-info">
+      <el-avatar :size="28" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
+      <span class="username">管理员</span>
+    </div>
+  </div>
 </template>
 
 <style lang="scss" scoped>
-.el-container {
+.header-left {
+  display: flex;
   align-items: center;
-  .el-breadcrumb {
-     margin-left: 20px;
-  }
-  .header-right {
-    margin-left: auto;
+  gap: 16px;
+  .collapse-btn {
+    font-size: 18px;
     cursor: pointer;
+    color: #666;
+    transition: all 0.3s;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background-color: transparent;
+    &:hover {
+      color: #1890ff;
+      background-color: #f0f7ff;
+    }
+  }
+  :deep(.el-breadcrumb__inner) {
+    color: #666;
+    font-weight: normal;
+    font-size: 14px;
+  }
+}
+
+.header-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  .header-icon {
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.3s;
+    background-color: transparent;
+    &:hover {
+      color: #1890ff;
+      background-color: #f0f7ff;
+    }
+  }
+  .user-info {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    height: 32px;
+    border-radius: 6px;
+    .username {
+      margin: 0 4px;
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
+    :deep(.el-avatar) {
+      border: 2px solid #fff;
+      box-shadow: 0 0 4px rgba(0,0,0,.1);
+      transition: all 0.3s;
+    }
   }
 }
 </style>

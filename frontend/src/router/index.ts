@@ -10,10 +10,18 @@ const router = createRouter({
       redirect: '/home',
       component: () => import('@/views/layout/LayoutView.vue'),
       meta: { requiresAuth: true },
+      // name 必须是 path 的最后一部分
+      // 需要搭配左侧菜单的 index 属性使用
       children: [
         {
+          name: 'home',
           path: '/home',
           component: () => import('@/views/layout/HomeView.vue')
+        },
+        {
+          name: 'user',
+          path: '/system/user',
+          component: () => import('@/views/auth/UserView.vue')
         }
       ]
     },
