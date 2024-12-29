@@ -37,6 +37,14 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     co_return HttpResponse::newHttpJsonResponse(json);
 }
 
+Task<HttpResponsePtr> UserController::list(const HttpRequestPtr req,
+                                           const UserQuery query) const
+{
+    LOG_INFO << "list";
+    auto resp = HttpResponse::newHttpResponse();
+    co_return resp;
+}
+
 template <>
 drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
 {
@@ -65,4 +73,55 @@ drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
     }
     value.updateByJson(json);
     return value;
+}
+
+template <>
+UserQuery drogon::fromRequest(const HttpRequest &req)
+{
+    UserQuery query;
+    auto username = req.getParameter("username");
+    if (!username.empty())
+    {
+        query.username = username;
+    }
+    auto phoneNumber = req.getParameter("phoneNumber");
+    if (!phoneNumber.empty())
+    {
+        query.phoneNumber = phoneNumber;
+    }
+    auto status = req.getParameter("status");
+    if (!status.empty())
+    {
+        query.status = std::stoi(status);
+    }
+    auto pageStr = req.getParameter("page");
+    if (!pageStr.empty())
+    {
+        auto page = std::stoi(pageStr);
+        if (page < 1)
+        {
+            LOG_INFO << "page 参数错误，使用默认值。";
+            page = 1;
+        }
+        query.page = page;
+    }
+    auto pageSizeStr = req.getParameter("pageSize");
+    if (!pageSizeStr.empty())
+    {
+        auto pageSize = std::stoi(pageSizeStr);
+        switch (pageSize)
+        {
+            case 20:
+            case 30:
+            case 50:
+                query.pageSize = pageSize;
+                break;
+            default:
+                LOG_INFO << "pageSize 参数错误，使用默认值。";
+            case 10:
+                query.pageSize = 10;
+                break;
+        }
+    }
+    return query;
 }

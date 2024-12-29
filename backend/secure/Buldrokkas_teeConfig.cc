@@ -29,7 +29,7 @@ void JwtLoginCheckFilter::doFilter(const drogon::HttpRequestPtr &req,
     {
         auto resp = HttpResponse::newHttpResponse(k401Unauthorized,
                                                   drogon::CT_TEXT_PLAIN);
-        resp->setBody("Authorization header is missing or invalid");
+        resp->setBody("缺少 Authorization 请求头，或者其值不合法");
         fcb(resp);
         return;
     }
@@ -51,7 +51,8 @@ void JwtLoginCheckFilter::doFilter(const drogon::HttpRequestPtr &req,
                 user.addAuthority(authority.asString());
             }
         }
-        req->getAttributes()->insert("userinfo", user);
+        req->attributes()->insert("user", user);
+        req->attributes()->insert("authorities", user.authorities());
         fccb();
         return;
     }
@@ -60,13 +61,13 @@ void JwtLoginCheckFilter::doFilter(const drogon::HttpRequestPtr &req,
     switch (result.first)
     {
         case ExpiredToken:
-            resp->setBody("Token expired");
+            resp->setBody("token 已过期");
             break;
         case InvalidToken:
-            resp->setBody("Invalid token");
+            resp->setBody("不合法的 token");
             break;
         default:
-            resp->setBody("Authorization header is missing or invalid");
+            resp->setBody("不合法的 token");
             break;
     }
     fcb(resp);

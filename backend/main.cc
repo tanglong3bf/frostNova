@@ -29,8 +29,9 @@ int main()
         [](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
             if (resp->getHeader("access-control-allow-origin") == "")
             {
+                auto origin = req->getHeader("origin");
                 resp->addHeader("access-control-allow-origin",
-                                req->getHeader("origin"));
+                                origin != "" ? origin : "*");
             }
         });
 
