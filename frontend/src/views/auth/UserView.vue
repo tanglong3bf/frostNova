@@ -1,91 +1,99 @@
 <script lang="ts" setup>
-  import { ref, reactive, computed } from 'vue'
-  import {Search, Refresh, Edit, Delete, Key, CircleCheck} from '@element-plus/icons-vue'
-  import { User, UserQuery, getUserList } from '@/api/user'
-  import { ElPagination } from 'element-plus'
+import {ref, reactive, computed, onMounted} from 'vue'
+import {Search, Refresh, Edit, Delete, Key, CircleCheck} from '@element-plus/icons-vue'
+import {type User, type UserQuery, getUserList, type PaginateResponse } from '@/api/user'
+import {ElPagination} from 'element-plus'
 
-  const queryParams = reactive<UserQuery>({
-    username: undefined,
-    phoneNumber: undefined,
-    status: undefined,
-    dateRange: [],
+const queryParams = reactive<UserQuery>({
+  username: undefined,
+  phoneNumber: undefined,
+  status: undefined,
+  dateRange: [],
+})
+
+const handleQuery = () => {
+  getList()
+}
+
+const resetQuery = () => {
+  queryParams.username = undefined
+  queryParams.phoneNumber = undefined
+  queryParams.status = undefined
+  queryParams.dateRange = []
+}
+
+const userList = ref<User[]>([])
+
+const getList = async () => {
+  const res: PaginateResponse<User> = await getUserList({
+    ...queryParams,
+    page: 1,
+    pageSize: 10,
   })
+  console.log(res)
+  userList.value = res.list || []
+}
 
-  const handleQuery = () => {
-    getList()
-  }
+onMounted(() => {
+  getList()
+})
 
-  const resetQuery = () => {
-    queryParams.username = undefined
-    queryParams.phoneNumber = undefined
-    queryParams.status = undefined
-    queryParams.dateRange = []
-  }
+const multiple = computed(() => {
+  return userList.value.some(user => user.selected)
+})
 
-  const userList = ref<User[]>([])
+const handleStatusChange = (row: User) => {
+  // TODO: update user status
+}
 
-  const getList = async () => {
-    const res = await getUserList({
-      ...queryParams,
-      page: 1,
-      pageSize: 10,
-    })
-    userList.value = res.data || []
-    console.log(res)
-  }
+const handleSelect = (selection: User[], row: User) => {
+  row.selected = selection.includes(row)
+}
 
-  const multiple = computed(() => {
-    return userList.value.some(user => user.selected)
+const handleSelectAll = (selection: User[]) => {
+  userList.value.forEach(user => {
+    user.selected = selection.includes(user)
   })
+}
 
-  const handleStatusChange = (row: User) => {
-    // TODO: update user status
-  }
+const handleSelectionChange = (selection: User[]) => {
+  userList.value.forEach(user => {
+    user.selected = selection.includes(user)
+  })
+}
 
-  const handleSelect = (selection: User[], row:User) => {
-    row.selected = selection.includes(row)
-  }
+// 新增
+const handleAdd = () => {
+  // TODO: add user
+}
 
-  const handleSelectAll = (selection: User[]) => {
-    userList.forEach(user => {
-      user.selected = selection.includes(user)
-    })
-  }
+// 修改
+const handleUpdate = (row: User) => {
+  // TODO: update user
+}
 
-  const handleSelectionChange = (selection: User[]) => {
-    userList.forEach(user => {
-      user.selected = selection.includes(user)
-    })
-  }
+// 删除
+const handleDelete = (row: User) => {
+  // TODO: delete user
+}
 
-  // 新增
-  const handleAdd = () => {
-    // TODO: add user
-  }
+const handleResetPwd = (row: User) => {
+  // TODO: reset user password
+}
 
-  // 修改
-  const handleUpdate = (row: User) => {
-    // TODO: update user
-  }
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
-  // 删除
-  const handleDelete = (row: User) => {
-    // TODO: delete user
-  }
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  getList()
+}
 
-  const currentPage = ref(1)
-  const pageSize = ref(10)
-  const total = ref(0)
-
-  const handleSizeChange = (size: number) => {
-    pageSize.value = size
-    getList()
-  }
-
-  const handleCurrentChange = (page: number) => {
-    currentPage.value = page
-    getList()
-  }
+const handleCurrentChange = (page: number) => {
+  currentPage.value = page
+  getList()
+}
 
 </script>
 
@@ -94,19 +102,23 @@
     <el-col>
       <el-form :model="queryParams" ref="queryForm" size="default" :inline="true" label-width="68px">
         <el-form-item label="用户名称" prop="username">
-          <el-input v-model="queryParams.username" placeholder="请输入用户名称" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+          <el-input v-model="queryParams.username" placeholder="请输入用户名称" clearable style="width: 240px"
+                    @keyup.enter.native="handleQuery"/>
         </el-form-item>
         <el-form-item label="手机号码" prop="phoneNumber">
-          <el-input v-model="queryParams.phoneNumber" placeholder="请输入手机号码" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+          <el-input v-model="queryParams.phoneNumber" placeholder="请输入手机号码" clearable style="width: 240px"
+                    @keyup.enter.native="handleQuery"/>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="queryParams.status" placeholder="用户状态" clearable style="width: 240px">
-            <el-option label="正常" :value="0" />
-            <el-option label="禁用" :value="1" />
+            <el-option label="正常" :value="0"/>
+            <el-option label="禁用" :value="1"/>
           </el-select>
         </el-form-item>
         <el-form-item label="创建时间" prop="dateRange">
-          <el-date-picker v-model="queryParams.dateRange" style="width: 240px" value-format="yyyy-MM-dd" type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+          <el-date-picker v-model="queryParams.dateRange" style="width: 240px" value-format="YYYY-MM-DD"
+                          type="daterange" range-separator="-" start-placeholder="开始日期"
+                          end-placeholder="结束日期"></el-date-picker>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" size="small" @click="handleQuery">搜索</el-button>
@@ -123,23 +135,25 @@
         </el-col>
       </el-row>
 
-      <el-table class="table" :data="userList" @select="handleSelect" @select-all="handleSelectAll" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="id" align="center" key="userId" prop="userId" />
-        <el-table-column label="用户名称" align="center" key="username" prop="username" :show-overflow-tooltip="true" />
-        <el-table-column label="用户昵称" align="center" key="nickname" prop="nickname" :show-overflow-tooltip="true" />
-        <el-table-column label="部门" align="center" key="deptName" prop="dept.deptName" :show-overflow-tooltip="true" />
-        <el-table-column label="手机号码" align="center" key="phoneNumber" prop="phoneNumber" width="120" />
+      <el-table class="table" :data="userList" @select="handleSelect" @select-all="handleSelectAll"
+                @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="50" align="center"/>
+        <el-table-column label="id" align="center" key="user_id" prop="user_id"/>
+        <el-table-column label="用户名称" align="center" key="username" prop="username" :show-overflow-tooltip="true"/>
+        <el-table-column label="用户昵称" align="center" key="nickname" prop="nickname" :show-overflow-tooltip="true"/>
+        <el-table-column label="部门" align="center" key="dept.dept_name" prop="dept.deptName"
+                         :show-overflow-tooltip="true"/>
+        <el-table-column label="手机号码" align="center" key="phone" prop="phone" width="120"/>
         <el-table-column label="状态" align="center" key="status">
           <template v-slot="{ row }">
-            <el-switch v-model="row.status" active-value="0" inactive-value="1" @change="handleStatusChange(row)"></el-switch>
+            <el-switch v-model="row.status" active-value="0" inactive-value="1"
+                       @change="handleStatusChange(row)"></el-switch>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" align="center" key="createTime" prop="createTime" width="160"/>
+        <el-table-column label="创建时间" align="center" key="create_time" prop="create_time" width="160"/>
         <el-table-column label="操作" align="center" width="400" fixed="right">
           <template v-slot="{ row }">
-            <el-button :icon="CircleCheck" type="primary" size="small" @click="handleAuthRole(row)">分配角色</el-button>
-            <template v-if="row.userId !== 1">
+            <template v-if="row.user_id !== 1">
               <el-button :icon="Key" type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
               <el-button :icon="Edit" type="primary" size="small" @click="handleUpdate(row)"/>
               <el-button :icon="Delete" type="danger" size="small" @click="handleDelete(row)"/>
@@ -167,6 +181,7 @@
 .table {
   margin-top: 20px;
 }
+
 .pagination-container {
   margin-top: 20px;
   display: flex;

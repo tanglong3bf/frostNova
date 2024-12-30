@@ -1,11 +1,10 @@
 import request from "@/utils/request";
-import type {LoginForm, LoginResponse} from "@/api/auth";
 
 export interface UserQuery {
     username?: string
     phoneNumber?: string
     status?: number
-    dateRange: string[]
+    dateRange: Date[] | string
 }
 
 export interface pageQuery {
@@ -14,21 +13,32 @@ export interface pageQuery {
 }
 
 export interface User {
-    userId: number
+    user_id: number
     username: string
     nickname: string
     dept: {
-        deptName: string
+        dept_name: string
     }
-    phoneNumber: string
+    phone: string
     status: number
-    createTime: string
+    create_time: string
     selected: boolean
 }
 
-export const getUserList = (query: UserQuery | pageQuery) => {
+export interface PaginateResponse<T> {
+    list: T[]
+    total: number
+    page: number
+    pageSize: number
+    maxPage: number
+}
+
+export const getUserList = (query: UserQuery & pageQuery): Promise<PaginateResponse<User>> => {
     console.log(query)
-    return request.get<UserList, UserList, UserQuery | pageQuery>(
+    if (Array.isArray(query.dateRange)) {
+        query.dateRange = query.dateRange.join(',')
+    }
+    return request.get<PaginateResponse<User>, PaginateResponse<User>, UserQuery & pageQuery>(
         '/user',
         {
             params: query
