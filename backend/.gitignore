@@ -1,5 +1,7 @@
 build/
 models/*.cc
 models/*.h
+models/controllers/*Base.cc
+models/controllers/*Base.h
 Buldrokkas_tee/
 DrogonJwtUtil/

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <drogon/HttpController.h>
+#include <drogon/orm/RestfulController.h>
 #include "../models/SysUser.h"
 
 using namespace drogon;
@@ -9,15 +10,18 @@ struct UserQuery
 {
     std::string username;
     std::string phoneNumber;
-    int status;
-    size_t page;
-    size_t pageSize;
-    std::string dateRange[2];
+    int status{-1};
+    size_t page{1};
+    size_t pageSize{10};
+    trantor::Date dateRange[2];
 };
 
-class UserController : public drogon::HttpController<UserController>
-
+class UserController : public drogon::HttpController<UserController>,
+                       public drogon::RestfulController
 {
+  public:
+    UserController();
+
   public:
     METHOD_LIST_BEGIN
     ADD_METHOD_TO(UserController::login, "/login", Post);

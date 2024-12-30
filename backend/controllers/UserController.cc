@@ -1,11 +1,41 @@
 #include "UserController.h"
 #include <Buldrokkas_tee.h>
 #include <JwtUtil.h>
+#include <drogon/orm/Criteria.h>
 
+using namespace std;
 using namespace drogon::orm;
 using namespace drogon_model::FrostNova;
 using namespace tl::secure;
 using namespace tl::jwt;
+
+UserController::UserController()
+    : RestfulController({"user_id",
+                         "username",
+                         "password",
+                         "nickname",
+                         "email",
+                         "phone",
+                         "gender",
+                         "avatar",
+                         "status",
+                         "is_delete",
+                         "create_time",
+                         "update_time"})
+{
+    enableMasquerading({"user_id",
+                        "username",
+                        "",  // "password"
+                        "nickname",
+                        "email",
+                        "phone",
+                        "gender",
+                        "avatar",
+                        "status",
+                        "",  // "is_delete"
+                        "create_time",
+                        "update_time"});
+}
 
 // Add definition of your processing function here
 Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
@@ -25,6 +55,10 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
         Json::Value userData;
         userData["userId"] = userInDb.getValueOfUserId();
         userData["username"] = userInDb.getValueOfUsername();
+        // @{ test data TODO: query in db
+        userData["authorities"].append("ROLE_admin");
+        userData["authorities"].append("auth:user:query");
+        // @}
         auto token = jwtUtil->encode(userData);
 
         Json::Value json;
@@ -40,8 +74,67 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
 Task<HttpResponsePtr> UserController::list(const HttpRequestPtr req,
                                            const UserQuery query) const
 {
-    LOG_INFO << "list";
-    auto resp = HttpResponse::newHttpResponse();
+    LOG_DEBUG << req->query();
+    CoroMapper<SysUser> mapper(app().getDbClient());
+
+    // 只查询未被删除的用户
+    Criteria criteria = Criteria{SysUser::Cols::_is_delete, 0};
+    // 依据参数设置其余查询条件（不包括分页）
+    if (!query.username.empty())
+    {
+        criteria = criteria && Criteria{SysUser::Cols::_username,
+                                        CompareOperator::Like,
+                                        "%" + query.username + "%"};
+    }
+    if (!query.phoneNumber.empty())
+    {
+        criteria = criteria && Criteria{SysUser::Cols::_phone,
+                                        CompareOperator::Like,
+                                        "%" + query.phoneNumber + "%"};
+    }
+    if (query.status != -1)
+    {
+        criteria = criteria && Criteria{SysUser::Cols::_status, query.status};
+    }
+    if (query.dateRange[0].microSecondsSinceEpoch() != 0 &&
+        query.dateRange[1].microSecondsSinceEpoch() != 0)
+    {
+        criteria = criteria &&
+                   Criteria{SysUser::Cols::_create_time,
+                            CompareOperator::GE,
+                            query.dateRange[0]} &&
+                   Criteria{SysUser::Cols::_create_time,
+                            CompareOperator::LT,
+                            query.dateRange[1]};
+    }
+
+    size_t total = co_await mapper.count(criteria);
+    auto maxPage = (total + query.pageSize - 1) / query.pageSize + (total == 0);
+    size_t page = min(query.page, maxPage);
+
+    // 封装返回数据
+    Json::Value json;
+    json["data"]["list"] = Json::Value(Json::arrayValue);
+    // 如果没有数据，则直接返回
+    if (total > 0) [[likely]]
+    {
+        auto userList =
+            co_await mapper.paginate(page, query.pageSize).findBy(criteria);
+        for (const auto &user : userList)
+        {
+            json["data"]["list"].append(
+                user.toMasqueradedJson(UserController::masqueradingVector()));
+        }
+    }
+    json["data"]["total"] = total;
+    json["data"]["page"] = page;
+    json["data"]["pageSize"] = query.pageSize;
+    json["data"]["maxPage"] = maxPage;
+    if (query.page > page) [[unlikely]]
+    {
+        json["message"] = "page超出maxPage，使用最后一页。";
+    }
+    auto resp = HttpResponse::newHttpJsonResponse(json);
     co_return resp;
 }
 
@@ -94,6 +187,22 @@ UserQuery drogon::fromRequest(const HttpRequest &req)
     {
         query.status = std::stoi(status);
     }
+
+    auto createTimeRange = req.getParameter("dateRange");
+    if (!createTimeRange.empty())
+    {
+        auto createTimes = utils::splitString(createTimeRange, ",");
+        auto startDate = utils::splitString(createTimes[0], "-");
+        query.dateRange[0] = trantor::Date(std::stoi(startDate[0]),
+                                           std::stoi(startDate[1]),
+                                           std::stoi(startDate[2]));
+        auto endDate = utils::splitString(createTimes[1], "-");
+        query.dateRange[1] = trantor::Date(std::stoi(endDate[0]),
+                                           std::stoi(endDate[1]),
+                                           std::stoi(endDate[2]))
+                                 .after(86400);  // +1 day
+    }
+
     auto pageStr = req.getParameter("page");
     if (!pageStr.empty())
     {
