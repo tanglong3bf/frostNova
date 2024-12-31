@@ -2,6 +2,7 @@ import { useCommonStore } from '@/stores/common'
 import axios, { type AxiosResponse } from 'axios'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 
 interface BaseResponse {
   code?: number
@@ -47,10 +48,6 @@ instance.interceptors.response.use(
     if (response.status === 204) {
       return null
     }
-    if (response.status === 401) {
-        ElMessage.error('Unauthorized')
-        return Promise.reject(new Error('Unauthorized'))
-    }
     const { code, message, error, data } = response.data || {}
     // 如果 code 小于 0，则表示发生了错误
     if (code !== undefined && code < 0) {
@@ -58,11 +55,17 @@ instance.interceptors.response.use(
       ElMessage.error(error || 'Error')
       return Promise.reject(new Error(error || 'Error'))
     } else {
-      ElMessage(message || 'Success')
+      ElMessage.success(message || 'Success')
       return data
      }
   },
   error => {
+    console.log('error: ', error)
+    if (error.status === 401) {
+      // 未登录
+      ElMessage.error('Please login first')
+      router.push('/login')
+    }
     return Promise.reject(error)
   }
 )
