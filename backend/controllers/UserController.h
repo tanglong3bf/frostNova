@@ -26,12 +26,18 @@ class UserController : public drogon::HttpController<UserController>,
     METHOD_LIST_BEGIN
     ADD_METHOD_TO(UserController::login, "/login", Post);
     ADD_METHOD_TO(UserController::list, "/user", Get);
+    ADD_METHOD_VIA_REGEX(UserController::updateStatus,
+                         "/user/([1-9]\\d*)/status/(0|1)",
+                         Put);
 
     METHOD_LIST_END
     Task<HttpResponsePtr> login(const HttpRequestPtr req,
                                 drogon_model::FrostNova::SysUser user) const;
     Task<HttpResponsePtr> list(const HttpRequestPtr req,
                                const UserQuery query) const;
+    Task<HttpResponsePtr> updateStatus(const HttpRequestPtr req,
+                                       const int user_id,
+                                       const int status) const;
 };
 
 namespace drogon

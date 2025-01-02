@@ -13,9 +13,4 @@ class CustomUserService : public tl::secure::UserService<CustomUserService>
     tl::secure::User loadUserByUsername(const std::string &) const override;
 };
 
-class JwtLoginCheckFilter : public drogon::HttpFilter<JwtLoginCheckFilter>
-{
-    virtual void doFilter(const drogon::HttpRequestPtr &req,
-                          drogon::FilterCallback &&fcb,
-                          drogon::FilterChainCallback &&fccb) override;
-};
+void registerJwtLoginCheckHandler();

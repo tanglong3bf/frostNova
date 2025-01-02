@@ -58,6 +58,7 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
         // @{ test data TODO: query in db
         userData["authorities"].append("ROLE_admin");
         userData["authorities"].append("auth:user:query");
+        userData["authorities"].append("auth:user:update");
         // @}
         auto token = jwtUtil->encode(userData);
 
@@ -135,6 +136,20 @@ Task<HttpResponsePtr> UserController::list(const HttpRequestPtr req,
         json["message"] = "page超出maxPage，使用最后一页。";
     }
     auto resp = HttpResponse::newHttpJsonResponse(json);
+    co_return resp;
+}
+
+Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
+                                                   const int user_id,
+                                                   const int status) const
+{
+    CoroMapper<SysUser> mapper(app().getDbClient());
+    auto count =
+        co_await mapper.updateBy(std::tuple{SysUser::Cols::_status},
+                                 Criteria{SysUser::Cols::_user_id, user_id},
+                                 status);
+    LOG_DEBUG << "update status count: " << count;
+    auto resp = HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
     co_return resp;
 }
 

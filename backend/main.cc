@@ -1,4 +1,5 @@
 #include "./exception/CustomException.h"
+#include "./secure/Buldrokkas_teeConfig.h"
 
 #include <drogon/drogon.h>
 #include <JwtUtil.h>
@@ -36,7 +37,7 @@ int main()
         });
 
     // 设置jwt的密钥
-    app().registerBeginningAdvice([]() {
+    app().registerBeginningAdvice([] {
         auto jwtUtil = app().getPlugin<JwtUtil>();
         if (!jwtUtil)
         {
@@ -44,6 +45,8 @@ int main()
         }
         jwtUtil->setSecret("FrostNova");
     });
+    // 注册jwt登录检查处理器
+    app().registerBeginningAdvice([] { registerJwtLoginCheckHandler(); });
 
     // 注册全局异常处理器
     app().setExceptionHandler(

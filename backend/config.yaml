@@ -68,7 +68,7 @@ db_clients:
 app:
   # number_of_threads: The number of IO threads, 1 by default, if the value is set to 0, the number of threads
   # is the number of CPU cores
-  number_of_threads: 0
+  number_of_threads: 1
   # enable_session: False by default
   enable_session: false
   session_timeout: 0
@@ -309,13 +309,6 @@ plugins:
       # You can inherit `tl::secure::PasswordEncoder` implements the custom
       # password encoder, just change this item to your custom class name.
       password_encoder: tl::secure::Md5PasswordEncoder
-      # Authentication. Default value: "tl::secure::DefaultAuthentication"
-      # You can inherit `tl::secure::Authentication` implements the custom
-      # authentication, just change this item to your custom class name.
-      authentication: tl::secure::DefaultAuthentication
-      # The default login check filter will use BASIC authentication. You
-      # can modify this item to use a user-defined filter.
-      login_check_filter: JwtLoginCheckFilter
       # The path in this array will not be subject to authentication
       # control.
       exempt:
@@ -325,8 +318,11 @@ plugins:
       # methods are subject to authentication control by default. Default
       # value: []
       path_authorities:
-        - path: /test
-          methods: GET
-          auth_expression: hasRole('admin') or hasAuthority('test')
+        - path: /user
+          methods: get
+          auth_expression: hasRole('admin') or hasAuthority('auth:user:query')
+        - path: /user/([1-9]\\d*)/status/(0|1)
+          method: put
+          auth_expression: hasRole('admin') or hasAuthority('auth:user:update')
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.
 custom_config: {}

@@ -20,55 +20,37 @@ User CustomUserService::loadUserByUsername(const string &username) const
     return user;
 }
 
-void JwtLoginCheckFilter::doFilter(const drogon::HttpRequestPtr &req,
-                                   drogon::FilterCallback &&fcb,
-                                   drogon::FilterChainCallback &&fccb)
+void registerJwtLoginCheckHandler()
 {
-    auto authHeader = req->getHeader("Authorization");
-    if (authHeader.empty() || authHeader.find("Bearer ") != 0)
-    {
-        auto resp = HttpResponse::newHttpResponse(k401Unauthorized,
-                                                  drogon::CT_TEXT_PLAIN);
-        resp->setBody("缺少 Authorization 请求头，或者其值不合法");
-        fcb(resp);
-        return;
-    }
-
-    auto token = authHeader.substr(7);  // remove "Bearer "
-    auto jwtUtil = app().getPlugin<JwtUtil>();
-    auto result = jwtUtil->decode(token);
-    if (result.first == Ok)
-    {
-        auto userId = result.second->get("userId", "").asString();
-        auto username = result.second->get("username", "").asString();
-
-        User user(username, "");
-        auto authoritiesJson = result.second->get("authorities", {});
-        if (authoritiesJson.isArray() && authoritiesJson.size() > 0)
+    auto loginCheckHandler = [](const HttpRequestPtr &req) -> optional<User> {
+        auto authHeader = req->getHeader("Authorization");
+        if (authHeader.empty() || authHeader.find("Bearer ") != 0)
         {
-            for (auto &authority : authoritiesJson)
-            {
-                user.addAuthority(authority.asString());
-            }
+            return nullopt;
         }
-        req->attributes()->insert("user", user);
-        req->attributes()->insert("authorities", user.authorities());
-        fccb();
-        return;
-    }
-    auto resp =
-        HttpResponse::newHttpResponse(k401Unauthorized, drogon::CT_TEXT_PLAIN);
-    switch (result.first)
-    {
-        case ExpiredToken:
-            resp->setBody("token 已过期");
-            break;
-        case InvalidToken:
-            resp->setBody("不合法的 token");
-            break;
-        default:
-            resp->setBody("不合法的 token");
-            break;
-    }
-    fcb(resp);
+
+        auto token = authHeader.substr(7);  // remove "Bearer "
+        auto jwtUtil = app().getPlugin<JwtUtil>();
+        auto result = jwtUtil->decode(token);
+        if (result.first == Ok)
+        {
+            auto userId = result.second->get("userId", "").asString();
+            auto username = result.second->get("username", "").asString();
+
+            User user(username, "");
+            auto authoritiesJson = result.second->get("authorities", {});
+            if (authoritiesJson.isArray() && authoritiesJson.size() > 0)
+            {
+                for (auto &authority : authoritiesJson)
+                {
+                    user.addAuthority(authority.asString());
+                }
+            }
+            return user;
+        }
+        LOG_ERROR << "Failed to decode JWT token: " << to_string(result.first);
+        return nullopt;
+    };
+    auto buldrokkas_tee = app().getPlugin<tl::secure::Buldrokkas_tee>();
+    buldrokkas_tee->registerLoginCheckHandler(loginCheckHandler);
 }
