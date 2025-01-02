@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import {ref, reactive, computed, onMounted} from 'vue'
-import {Search, Refresh, Edit, Delete, Key, CircleCheck} from '@element-plus/icons-vue'
-import {type User, type UserQuery, getUserList, type PaginateResponse } from '@/api/user'
-import {ElPagination} from 'element-plus'
+import {Search, Refresh, Edit, Delete, Key} from '@element-plus/icons-vue'
+import {type User, type UserQuery, getUserList, type PaginateResponse, updateStatus } from '@/api/user'
+import {ElPagination, ElMessage} from 'element-plus'
 
 const queryParams = reactive<UserQuery>({
   username: undefined,
@@ -42,8 +42,14 @@ const multiple = computed(() => {
   return userList.value.some(user => user.selected)
 })
 
-const handleStatusChange = (row: User) => {
-  // TODO: update user status
+const isInitialLoad = ref(true)
+const handleStatusChange = async (row: User) => {
+  if (isInitialLoad.value) {
+    isInitialLoad.value = false
+    return
+  }
+  await updateStatus(row.user_id, row.status)
+  ElMessage.success('状态修改成功')
 }
 
 const handleSelect = (selection: User[], row: User) => {
@@ -146,7 +152,7 @@ const handleCurrentChange = (page: number) => {
         <el-table-column label="手机号码" align="center" key="phone" prop="phone" width="120"/>
         <el-table-column label="状态" align="center" key="status">
           <template v-slot="{ row }">
-            <el-switch v-model="row.status" active-value="0" inactive-value="1"
+            <el-switch v-model="row.status" active-value="1" inactive-value="0"
                        @change="handleStatusChange(row)"></el-switch>
           </template>
         </el-table-column>

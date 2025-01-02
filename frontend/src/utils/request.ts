@@ -55,9 +55,11 @@ instance.interceptors.response.use(
       ElMessage.error(error || 'Error')
       return Promise.reject(new Error(error || 'Error'))
     } else {
-      ElMessage.success(message || 'Success')
+      if (message !== undefined) {
+        ElMessage.success(message)
+      }
       return data
-     }
+    }
   },
   error => {
     console.log('error: ', error)

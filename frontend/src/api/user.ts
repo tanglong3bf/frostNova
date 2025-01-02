@@ -38,9 +38,13 @@ export const getUserList = (query: UserQuery & pageQuery): Promise<PaginateRespo
     if (Array.isArray(query.dateRange)) {
         query.dateRange = query.dateRange.join(',')
     }
-    return request.get<PaginateResponse<User>, PaginateResponse<User>, UserQuery & pageQuery>(
+    return request.get<PaginateResponse<User>, PaginateResponse<User>, void>(
         '/user',
         {
             params: query
         })
+}
+
+export const updateStatus = (userId: number, status: number): Promise<void> => {
+    return request.put(`/user/${userId}/status/${status}`)
 }
