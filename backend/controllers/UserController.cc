@@ -46,29 +46,44 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     CoroMapper<SysUser> mapper(app().getDbClient());
     auto userInDb = co_await mapper.findOne(
         Criteria{SysUser::Cols::_username, user.getValueOfUsername()} &&
-        Criteria{SysUser::Cols::_status, 0} &&
         Criteria{SysUser::Cols::_is_delete, 0});
-    if (userInDb.getValueOfPassword() ==
+
+    // 密码错误
+    if (userInDb.getValueOfPassword() !=
         passwordEncoder->encode(user.getValueOfPassword()))
     {
-        auto jwtUtil = app().getPlugin<JwtUtil>();
-        Json::Value userData;
-        userData["userId"] = userInDb.getValueOfUserId();
-        userData["username"] = userInDb.getValueOfUsername();
-        // @{ test data TODO: query in db
-        userData["authorities"].append("ROLE_admin");
-        userData["authorities"].append("auth:user:query");
-        userData["authorities"].append("auth:user:update");
-        // @}
-        auto token = jwtUtil->encode(userData);
-
         Json::Value json;
-        json["data"]["token"] = token;
-        co_return HttpResponse::newHttpJsonResponse(json);
+        json["code"] = -1;
+        json["error"] = "用户名或密码错误，登录失败。";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(drogon::k401Unauthorized);
+        co_return resp;
     }
+
+    // 被禁用的用户，不样登录
+    if (userInDb.getValueOfStatus() == 1)
+    {
+        Json::Value json;
+        json["error"] = "用户已被禁用，请联系管理员。";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(drogon::k401Unauthorized);
+        co_return resp;
+    }
+
+    // 生成 JWT token
+    auto jwtUtil = app().getPlugin<JwtUtil>();
+    Json::Value userData;
+    userData["userId"] = userInDb.getValueOfUserId();
+    userData["username"] = userInDb.getValueOfUsername();
+    // @{ test data TODO: query in db
+    userData["authorities"].append("ROLE_admin");
+    userData["authorities"].append("auth:user:query");
+    userData["authorities"].append("auth:user:update");
+    // @}
+    auto token = jwtUtil->encode(userData);
+
     Json::Value json;
-    json["code"] = -1;
-    json["error"] = "用户名或密码错误，登录失败。";
+    json["data"]["token"] = token;
     co_return HttpResponse::newHttpJsonResponse(json);
 }
 
