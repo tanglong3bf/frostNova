@@ -1,3 +1,4 @@
+#include "../exception/CustomException.h"
 #include "UserController.h"
 #include <Buldrokkas_tee.h>
 #include <JwtUtil.h>
@@ -44,30 +45,30 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
 
     CoroMapper<SysUser> mapper(app().getDbClient());
-    auto userInDb = co_await mapper.findOne(
-        Criteria{SysUser::Cols::_username, user.getValueOfUsername()} &&
-        Criteria{SysUser::Cols::_is_delete, 0});
+    SysUser userInDb;
+    try
+    {
+        userInDb = co_await mapper.findOne(
+            Criteria{SysUser::Cols::_username, user.getValueOfUsername()} &&
+            Criteria{SysUser::Cols::_is_delete, 0});
+    }
+    catch (const drogon::orm::UnexpectedRows &e)
+    {
+        LOG_ERROR << e.what();
+        throw CustomException("不存在的用户名", -1);
+    }
 
     // 密码错误
     if (userInDb.getValueOfPassword() !=
         passwordEncoder->encode(user.getValueOfPassword()))
     {
-        Json::Value json;
-        json["code"] = -1;
-        json["error"] = "用户名或密码错误，登录失败。";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(drogon::k401Unauthorized);
-        co_return resp;
+        throw CustomException("用户名或密码错误，登录失败。", -1);
     }
 
     // 被禁用的用户，不样登录
     if (userInDb.getValueOfStatus() == 1)
     {
-        Json::Value json;
-        json["error"] = "用户已被禁用，请联系管理员。";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(drogon::k401Unauthorized);
-        co_return resp;
+        throw CustomException("用户已被禁用，请联系管理员。", -1);
     }
 
     // 生成 JWT token
