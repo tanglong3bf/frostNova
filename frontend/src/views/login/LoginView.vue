@@ -31,9 +31,9 @@ const handleLogin = async () => {
   const res = await login(form.username, form.password)
   setToken(res.token)
   nextTick(() => {
-    router.push('/')
+    router.go(-1)
   })
-};
+}
 </script>
 
 <template>

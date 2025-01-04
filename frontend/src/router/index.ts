@@ -16,12 +16,14 @@ const router = createRouter({
         {
           name: 'home',
           path: '/home',
-          component: () => import('@/views/layout/HomeView.vue')
+          component: () => import('@/views/layout/HomeView.vue'),
+          meta: { requiresAuth: true }
         },
         {
           name: 'user',
           path: '/system/user',
-          component: () => import('@/views/auth/UserView.vue')
+          component: () => import('@/views/auth/UserView.vue'),
+          meta: { requiresAuth: true }
         }
       ]
     },

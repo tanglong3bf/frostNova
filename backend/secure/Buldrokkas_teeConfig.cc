@@ -1,4 +1,3 @@
-#include "../exception/CustomException.h"
 #include "Buldrokkas_teeConfig.h"
 #include <JwtUtil.h>
 #include "../models/SysUser.h"
@@ -48,10 +47,6 @@ void registerJwtLoginCheckHandler()
                 }
             }
             return user;
-        }
-        else if (result.first == ExpiredToken)
-        {
-            throw AuthorityException("token 已经过期", TOKEN_EXPIRED);
         }
         return nullopt;
     };
