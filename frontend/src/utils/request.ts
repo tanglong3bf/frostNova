@@ -65,8 +65,18 @@ instance.interceptors.response.use(
     console.log('error: ', error)
     if (error.status === 401) {
       // 未登录
-      ElMessage.error('Please login first')
+      const code = error.response.data?.code || -1
+      let message
+      if (code >= 3000 && code < 4000) {
+          message = "请您先登录"
+      } else {
+          message = error.response.data?.error || "请您先登录"
+      }
+      ElMessage.error(message)
       router.push('/login')
+    }
+    else {
+      ElMessage.error(error.response.data?.error || 'Error')
     }
     return Promise.reject(error)
   }

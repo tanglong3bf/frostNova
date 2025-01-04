@@ -1,3 +1,4 @@
+#include "../exception/CustomException.h"
 #include "Buldrokkas_teeConfig.h"
 #include <JwtUtil.h>
 #include "../models/SysUser.h"
@@ -48,7 +49,10 @@ void registerJwtLoginCheckHandler()
             }
             return user;
         }
-        LOG_ERROR << "Failed to decode JWT token: " << to_string(result.first);
+        else if (result.first == ExpiredToken)
+        {
+            throw AuthorityException("token 已经过期", TOKEN_EXPIRED);
+        }
         return nullopt;
     };
     auto buldrokkas_tee = app().getPlugin<tl::secure::Buldrokkas_tee>();

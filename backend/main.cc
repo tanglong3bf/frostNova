@@ -56,18 +56,49 @@ int main()
             LOG_ERROR << req->path() << " throws an exception: " << e.what();
             Json::Value json;
             const auto *customError = dynamic_cast<const CustomException *>(&e);
+            auto statusCode = k500InternalServerError;
             if (customError != nullptr)
             {
-                json["code"] = customError->getCode();
+                auto code = customError->getCode();
+                switch (code)
+                {
+                    case PARAMETER_ERROR:
+                    case PARAM_MISSING:
+                    case PARAM_FORMAT_ERROR:
+                    case INVALID_PARAM_VALUE:
+                    case PARAM_TYPE_MISMATCH:
+                        statusCode = k400BadRequest;
+                        break;
+                    case AUTHORITY_ERROR:
+                    case INVALID_TOKEN:
+                    case TOKEN_EXPIRED:
+                    case PASSWORD_ERROR:
+                    case USER_IS_DISABLED:
+                        statusCode = k401Unauthorized;
+                        break;
+                    case USER_NOT_EXITS:
+                        statusCode = k404NotFound;
+                        break;
+                    case USER_IS_EXISTS:
+                        statusCode = k409Conflict;
+                        break;
+                    case PARAM_LENGTH_ERROR:
+                        statusCode = k422UnprocessableEntity;
+                        break;
+                    default:
+                        statusCode = k500InternalServerError;
+                }
+                json["code"] = code;
                 json["error"] = customError->what();
             }
             else
             {
                 json["code"] = -1;
                 json["error"] = "未知错误";
+                statusCode = k500InternalServerError;
             }
             auto resp = HttpResponse::newHttpJsonResponse(json);
-            resp->setStatusCode(k500InternalServerError);
+            resp->setStatusCode(statusCode);
             callback(resp);
             return;
         });

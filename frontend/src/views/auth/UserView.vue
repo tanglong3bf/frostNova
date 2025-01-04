@@ -152,7 +152,7 @@ const handleCurrentChange = (page: number) => {
         <el-table-column label="手机号码" align="center" key="phone" prop="phone" width="120"/>
         <el-table-column label="状态" align="center" key="status">
           <template v-slot="{ row }">
-            <el-switch v-model="row.status" active-value="1" inactive-value="0"
+            <el-switch v-model="row.status" active-value="0" inactive-value="1"
                        @change="handleStatusChange(row)"></el-switch>
           </template>
         </el-table-column>

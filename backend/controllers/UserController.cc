@@ -55,20 +55,21 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     catch (const drogon::orm::UnexpectedRows &e)
     {
         LOG_ERROR << e.what();
-        throw CustomException("不存在的用户名", -1);
+        throw BusinessException("不存在的用户名", USER_NOT_EXITS);
     }
 
     // 密码错误
     if (userInDb.getValueOfPassword() !=
         passwordEncoder->encode(user.getValueOfPassword()))
     {
-        throw CustomException("用户名或密码错误，登录失败。", -1);
+        throw BusinessException("用户名或密码错误，登录失败。", PASSWORD_ERROR);
     }
 
     // 被禁用的用户，不样登录
     if (userInDb.getValueOfStatus() == 1)
     {
-        throw CustomException("用户已被禁用，请联系管理员。", -1);
+        throw BusinessException("用户已被禁用，请联系管理员。",
+                                USER_IS_DISABLED);
     }
 
     // 生成 JWT token
@@ -175,25 +176,27 @@ drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
     auto jsonPtr = req.getJsonObject();
     if (!jsonPtr)
     {
-        throw std::invalid_argument("不支持的请求体格式，请使用 json。");
+        throw ParamException("不支持的请求体格式，请使用 json。",
+                             PARAM_FORMAT_ERROR);
     }
     auto json = *jsonPtr;
     drogon_model::FrostNova::SysUser value;
     if (!json.isMember("username") || !json["username"].isString())
     {
-        throw std::invalid_argument("缺少必备参数：username。");
+        throw ParamException("缺少必备参数：username。", PARAM_MISSING);
     }
     if (json["username"].asString().length() < 8)
     {
-        throw std::invalid_argument("用户名长度不能少于 8 个字符。");
+        throw ParamException("用户名长度不能少于 8 个字符。",
+                             PARAM_LENGTH_ERROR);
     }
     if (!json.isMember("password") || !json["password"].isString())
     {
-        throw std::invalid_argument("缺少必备参数：password。");
+        throw ParamException("缺少必备参数：password。", PARAM_MISSING);
     }
     if (json["password"].asString().length() < 6)
     {
-        throw std::invalid_argument("密码长度不能少于 6 个字符。");
+        throw ParamException("密码长度不能少于 6 个字符。", PARAM_LENGTH_ERROR);
     }
     value.updateByJson(json);
     return value;
