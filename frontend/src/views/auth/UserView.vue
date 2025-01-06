@@ -42,13 +42,20 @@ const multiple = computed(() => {
   return userList.value.some(user => user.selected)
 })
 
-const isInitialLoad = ref(true)
+// const isInitialLoad = ref(true)
 const handleStatusChange = async (row: User) => {
-  if (isInitialLoad.value) {
-    isInitialLoad.value = false
+  // if (isInitialLoad.value) {
+  //   isInitialLoad.value = false
+  //   return
+  // }
+
+  try {
+    await updateStatus(row.user_id, row.status)
+  } catch (error) {
+    ElMessage.error('状态修改失败')
+    row.status = row.status === 0 ? 1 : 0
     return
   }
-  await updateStatus(row.user_id, row.status)
   ElMessage.success('状态修改成功')
 }
 
@@ -152,7 +159,8 @@ const handleCurrentChange = (page: number) => {
         <el-table-column label="手机号码" align="center" key="phone" prop="phone" width="120"/>
         <el-table-column label="状态" align="center" key="status">
           <template v-slot="{ row }">
-            <el-switch v-model="row.status" active-value="0" inactive-value="1"
+            <!-- TODO: 通过角色判断是否禁用 -->
+            <el-switch :disabled="row.user_id === 1" v-model="row.status" :active-value="0" :inactive-value="1"
                        @change="handleStatusChange(row)"></el-switch>
           </template>
         </el-table-column>

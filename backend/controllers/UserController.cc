@@ -160,6 +160,11 @@ Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
                                                    const int user_id,
                                                    const int status) const
 {
+    // TODO: 之后通过角色判断
+    if (user_id == 1)
+    {
+        throw CustomException("不能修改超级管理员的状态");
+    }
     CoroMapper<SysUser> mapper(app().getDbClient());
     auto count =
         co_await mapper.updateBy(std::tuple{SysUser::Cols::_status},
