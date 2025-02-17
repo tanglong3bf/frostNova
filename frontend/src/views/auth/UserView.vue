@@ -75,11 +75,6 @@ const handleSelectionChange = (selection: User[]) => {
   })
 }
 
-// 新增
-const handleAdd = () => {
-  // TODO: add user
-}
-
 // 修改
 const handleUpdate = (row: User) => {
   // TODO: update user
@@ -106,6 +101,48 @@ const handleSizeChange = (size: number) => {
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
   getList()
+}
+
+/// dialog
+const isDialogVisible = ref(false)
+const isAdd = ref(false)
+
+const user = reactive<User>({
+  user_id: 0,
+  username: '',
+  nickname: '',
+  phone: '',
+  status: 0,
+  create_time: '',
+  dept: {
+    dept_name: '',
+  },
+  selected: false,
+})
+
+const rules = reactive<FormRules<User>>({
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 8, max: 32, message: '长度在 8 到 32 个字符', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9]+$/, message: '用户名只能包含字母和数字', trigger: 'blur' }
+  ]
+});
+
+// 新增
+const handleAdd = () => {
+  isDialogVisible.value = true
+  isAdd.value = true
+}
+
+// 关闭弹窗
+const handleClose = () => {
+  isDialogVisible.value = false
+}
+
+// 保存
+const handleSave = async () => {
+  // TODO: save user
+  isDialogVisible.value = false
 }
 
 </script>
@@ -189,6 +226,25 @@ const handleCurrentChange = (page: number) => {
       </div>
     </el-col>
   </el-row>
+
+  <el-dialog :title="isAdd ? '新增用户' : '修改用户'" v-model="isDialogVisible" width="400px" :before-close="handleClose">
+    <el-form ref="userForm" :rules="rules" :model="user" label-width="80px">
+      <el-form-item label="用户名" prop="username">
+        <el-input v-model="user.username" placeholder="请输入用户名" clearable style="width: 300px"/>
+        <el-tag type="warning">默认密码：123456</el-tag>
+      </el-form-item>
+      <el-form-item label="昵称" prop="nickname">
+        <el-input v-model="user.nickname" placeholder="请输入昵称" clearable style="width: 300px"/>
+      </el-form-item>
+      <el-form-item label="手机号码" prop="phone">
+        <el-input v-model="user.phone" placeholder="请输入手机号码" clearable style="width: 300px"/>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="handleClose">取 消</el-button>
+      <el-button type="primary" @click="handleSave">保 存</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style lang="scss" scoped>
