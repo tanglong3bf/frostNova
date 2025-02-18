@@ -1,6 +1,9 @@
-[submodule "backend/Buldrokkas_tee"]
-	path = backend/Buldrokkas_tee
-	url = https://github.com/tanglong3bf/Buldrokkas_tee.git
+[submodule "backend/SqlGenerator"]
+	path = backend/SqlGenerator
+	url = https://github.com/tanglong3bf/SqlGenerator.git
 [submodule "backend/DrogonJwtUtil"]
 	path = backend/DrogonJwtUtil
 	url = https://github.com/tanglong3bf/DrogonJwtUtil.git
+[submodule "backend/Buldrokkas_tee"]
+	path = backend/Buldrokkas_tee
+	url = https://github.com/tanglong3bf/Buldrokkas_tee.git
