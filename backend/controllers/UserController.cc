@@ -80,6 +80,8 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     // @{ test data TODO: query in db
     userData["authorities"].append("ROLE_admin");
     userData["authorities"].append("auth:user:query");
+    userData["authorities"].append("auth:user:insert");
+    userData["authorities"].append("auth:user:delete");
     userData["authorities"].append("auth:user:update");
     // @}
     auto token = jwtUtil->encode(userData);
@@ -175,6 +177,22 @@ Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
     co_return resp;
 }
 
+Task<HttpResponsePtr> UserController::newUser(const HttpRequestPtr req,
+                                              SysUser user) const
+{
+    auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
+    user.setPassword(passwordEncoder->encode(user.getValueOfPassword()));
+    user.setCreateTime(trantor::Date::now());
+    CoroMapper<SysUser> mapper(app().getDbClient());
+
+    const auto userInDb = co_await mapper.insert(user);
+    Json::Value json;
+    json["data"]["id"] = userInDb.getValueOfUserId();
+    auto resp = HttpResponse::newHttpJsonResponse(json);
+    resp->setStatusCode(k201Created);
+    co_return resp;
+}
+
 template <>
 drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
 {
@@ -195,11 +213,8 @@ drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
         throw ParamException("用户名长度不能少于 8 个字符。",
                              PARAM_LENGTH_ERROR);
     }
-    if (!json.isMember("password") || !json["password"].isString())
-    {
-        throw ParamException("缺少必备参数：password。", PARAM_MISSING);
-    }
-    if (json["password"].asString().length() < 6)
+    if (json.isMember("password") && json["password"].isString() &&
+        json["password"].asString().length() < 6)
     {
         throw ParamException("密码长度不能少于 6 个字符。", PARAM_LENGTH_ERROR);
     }

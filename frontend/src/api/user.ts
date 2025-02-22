@@ -15,6 +15,7 @@ export interface pageQuery {
 export interface User {
     user_id: number
     username: string
+    password?: string
     nickname: string
     dept: {
         dept_name: string
@@ -23,6 +24,12 @@ export interface User {
     status: number
     create_time: string
     selected: boolean
+}
+
+export interface newUser {
+    nickname: string
+    phone: string
+    username: string
 }
 
 export interface PaginateResponse<T> {
@@ -46,5 +53,9 @@ export const getUserList = (query: UserQuery & pageQuery): Promise<PaginateRespo
 }
 
 export const updateStatus = (userId: number, status: number): Promise<void> => {
-    return request.put(`/user/${userId}/status/${status}`)
+    return request.put<void, void, void>(`/user/${userId}/status/${status}`)
 }
+
+export const newUser = (user: newUser): Promise<{ id: number }> => {
+    return request.post<{ id: number }, { id: number }, newUser>('/user', user);
+};

@@ -33,7 +33,7 @@ instance.interceptors.request.use(
     const { token } = storeToRefs(commonStore)
     if (token.value !== '') {
       // 每次请求时添加 token
-      config.headers['Authorization'] = 'Bearer '+ token.value
+      config.headers['Authorization'] = 'Bearer ' + token.value
     }
     return config
   },
@@ -63,17 +63,21 @@ instance.interceptors.response.use(
   },
   error => {
     console.log('error: ', error)
+    console.log('error.response: ', error.response)
+    console.log('error.response.data: ', error.response.data)
     if (error.status === 401) {
       // 未登录
       const code = error.response.data?.code || -1
       let message
       if (code >= 3000 && code < 4000) {
-          message = "请您先登录"
+        message = "请您先登录"
       } else {
-          message = error.response.data?.error || "请您先登录"
+        message = error.response.data?.error || "请您先登录"
       }
       ElMessage.error(message)
+      console.log('Attempting to redirect to login page')
       router.push('/login')
+      console.log(router)
     }
     else {
       ElMessage.error(error.response.data?.error || 'Error')
