@@ -2,10 +2,10 @@
 
 #include <drogon/HttpController.h>
 #include <drogon/orm/RestfulController.h>
-#include "../models/SysUser.h"
 
 using namespace drogon;
 
+/// @{ DTO
 struct UserQuery
 {
     std::string username;
@@ -15,6 +15,21 @@ struct UserQuery
     size_t pageSize{10};
     trantor::Date dateRange[2];
 };
+
+struct UserLogin
+{
+    std::string username;
+    std::string password;
+};
+
+struct UserCreate
+{
+    std::string username;
+    std::string nickname;
+    std::string phoneNumber;
+};
+
+/// @}
 
 class UserController : public drogon::HttpController<UserController>,
                        public drogon::RestfulController
@@ -32,21 +47,22 @@ class UserController : public drogon::HttpController<UserController>,
     ADD_METHOD_TO(UserController::newUser, "/user", Post);
 
     METHOD_LIST_END
-    Task<HttpResponsePtr> login(const HttpRequestPtr req,
-                                drogon_model::FrostNova::SysUser user) const;
+    Task<HttpResponsePtr> login(const HttpRequestPtr req, UserLogin user) const;
     Task<HttpResponsePtr> list(const HttpRequestPtr req,
                                const UserQuery query) const;
     Task<HttpResponsePtr> updateStatus(const HttpRequestPtr req,
                                        const int user_id,
                                        const int status) const;
     Task<HttpResponsePtr> newUser(const HttpRequestPtr req,
-                                  drogon_model::FrostNova::SysUser user) const;
+                                  UserCreate user) const;
 };
 
 namespace drogon
 {
 template <>
-drogon_model::FrostNova::SysUser fromRequest(const HttpRequest &req);
-template <>
 UserQuery fromRequest(const HttpRequest &req);
+template <>
+UserLogin fromRequest(const HttpRequest &req);
+template <>
+UserCreate fromRequest(const HttpRequest &req);
 }  // namespace drogon

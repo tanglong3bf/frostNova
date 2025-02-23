@@ -1,4 +1,5 @@
 #include "../exception/CustomException.h"
+#include "../models/SysUser.h"
 #include "UserController.h"
 #include <Buldrokkas_tee.h>
 #include <JwtUtil.h>
@@ -40,7 +41,7 @@ UserController::UserController()
 
 // Add definition of your processing function here
 Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
-                                            SysUser user) const
+                                            UserLogin user) const
 {
     auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
 
@@ -49,7 +50,7 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     try
     {
         userInDb = co_await mapper.findOne(
-            Criteria{SysUser::Cols::_username, user.getValueOfUsername()} &&
+            Criteria{SysUser::Cols::_username, user.username} &&
             Criteria{SysUser::Cols::_is_delete, 0});
     }
     catch (const drogon::orm::UnexpectedRows &e)
@@ -59,8 +60,7 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     }
 
     // 密码错误
-    if (userInDb.getValueOfPassword() !=
-        passwordEncoder->encode(user.getValueOfPassword()))
+    if (userInDb.getValueOfPassword() != passwordEncoder->encode(user.password))
     {
         throw BusinessException("用户名或密码错误，登录失败。", PASSWORD_ERROR);
     }
@@ -178,48 +178,21 @@ Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
 }
 
 Task<HttpResponsePtr> UserController::newUser(const HttpRequestPtr req,
-                                              SysUser user) const
+                                              UserCreate user) const
 {
     auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
-    user.setPassword(passwordEncoder->encode(user.getValueOfPassword()));
-    user.setCreateTime(trantor::Date::now());
+    SysUser userInDb;
+    // 默认密码：123456
+    userInDb.setPassword(passwordEncoder->encode("123456"));
+    userInDb.setCreateTime(trantor::Date::now());
     CoroMapper<SysUser> mapper(app().getDbClient());
 
-    const auto userInDb = co_await mapper.insert(user);
+    userInDb = co_await mapper.insert(userInDb);
     Json::Value json;
     json["data"]["id"] = userInDb.getValueOfUserId();
     auto resp = HttpResponse::newHttpJsonResponse(json);
     resp->setStatusCode(k201Created);
     co_return resp;
-}
-
-template <>
-drogon_model::FrostNova::SysUser drogon::fromRequest(const HttpRequest &req)
-{
-    auto jsonPtr = req.getJsonObject();
-    if (!jsonPtr)
-    {
-        throw ParamException("不支持的请求体格式，请使用 json。",
-                             PARAM_FORMAT_ERROR);
-    }
-    auto json = *jsonPtr;
-    drogon_model::FrostNova::SysUser value;
-    if (!json.isMember("username") || !json["username"].isString())
-    {
-        throw ParamException("缺少必备参数：username。", PARAM_MISSING);
-    }
-    if (json["username"].asString().length() < 8)
-    {
-        throw ParamException("用户名长度不能少于 8 个字符。",
-                             PARAM_LENGTH_ERROR);
-    }
-    if (json.isMember("password") && json["password"].isString() &&
-        json["password"].asString().length() < 6)
-    {
-        throw ParamException("密码长度不能少于 6 个字符。", PARAM_LENGTH_ERROR);
-    }
-    value.updateByJson(json);
-    return value;
 }
 
 template <>
@@ -287,4 +260,76 @@ UserQuery drogon::fromRequest(const HttpRequest &req)
         }
     }
     return query;
+}
+
+template <>
+UserLogin drogon::fromRequest(const HttpRequest &req)
+{
+    UserLogin user;
+    auto jsonPtr = req.getJsonObject();
+    if (jsonPtr == nullptr)
+    {
+        throw ParamException("请使用 json 格式传递参数", PARAM_FORMAT_ERROR);
+    }
+    auto &json = *jsonPtr;
+    if (!json.isMember("username"))
+    {
+        throw ParamException("缺少必备参数：username", PARAM_MISSING);
+    }
+    auto username = json["username"].asString();
+    if (username.size() < 8)
+    {
+        throw ParamException("用户名长度过短", PARAM_LENGTH_ERROR);
+    }
+    if (!json.isMember("password"))
+    {
+        throw ParamException("缺少必备参数：password", PARAM_MISSING);
+    }
+    auto password = json["password"].asString();
+    if (password.size() < 6)
+    {
+        throw ParamException("密码长度过短", PARAM_LENGTH_ERROR);
+    }
+    user.username = username;
+    user.password = password;
+    return user;
+}
+
+template <>
+UserCreate drogon::fromRequest(const HttpRequest &req)
+{
+    UserCreate user;
+    auto jsonPtr = req.getJsonObject();
+    if (jsonPtr == nullptr)
+    {
+        throw ParamException("请使用 json 格式传递参数", PARAM_FORMAT_ERROR);
+    }
+    auto &json = *jsonPtr;
+    if (!json.isMember("username"))
+    {
+        throw ParamException("缺少必备参数：username", PARAM_MISSING);
+    }
+    auto username = json["username"].asString();
+    if (username.size() < 8)
+    {
+        throw ParamException("用户名长度过短", PARAM_LENGTH_ERROR);
+    }
+    if (!json.isMember("nickname"))
+    {
+        throw ParamException("缺少必备参数：nickname", PARAM_MISSING);
+    }
+    auto nickname = json["nickname"].asString();
+    if (!json.isMember("phoneNumber"))
+    {
+        throw ParamException("缺少必备参数：phoneNumber", PARAM_MISSING);
+    }
+    auto phoneNumber = json["phoneNumber"].asString();
+    if (phoneNumber.size() != 11)
+    {
+        throw ParamException("手机号码长度错误", PARAM_LENGTH_ERROR);
+    }
+    user.username = username;
+    user.nickname = nickname;
+    user.phoneNumber = phoneNumber;
+    return user;
 }
