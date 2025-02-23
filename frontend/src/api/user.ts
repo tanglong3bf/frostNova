@@ -57,5 +57,9 @@ export const updateStatus = (userId: number, status: number): Promise<void> => {
 }
 
 export const newUser = (user: newUser): Promise<{ id: number }> => {
-    return request.post<{ id: number }, { id: number }, newUser>('/user', user);
-};
+    return request.post<{ id: number }, { id: number }, newUser>('/user', user)
+}
+
+export const deleteUser = (userId: number): Promise<void> => {
+    return request.delete<void, void, void>(`/user/${userId}`)
+}

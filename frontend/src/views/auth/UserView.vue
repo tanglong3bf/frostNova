@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElPagination, ElMessage, type FormRules } from 'element-plus'
+import { ElPagination, ElMessage, ElMessageBox, type FormRules } from 'element-plus'
 import { Search, Refresh, Edit, Delete, Key } from '@element-plus/icons-vue'
 import { type User, type UserQuery, type PaginateResponse } from '@/api/user'
-import { getUserList, updateStatus, newUser } from '@/api/user'
+import { getUserList, updateStatus, newUser, deleteUser } from '@/api/user'
 
 const queryParams = reactive<UserQuery>({
   username: undefined,
@@ -82,8 +82,46 @@ const handleUpdate = (row: User) => {
 }
 
 // 删除
-const handleDelete = (row: User) => {
-  // TODO: delete user
+const handleDelete = async (user_id: number) => {
+  console.log(user_id)
+  try {
+    await ElMessageBox.confirm('确认删除该用户吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    const username = await ElMessageBox.prompt('请输入用户名以确认删除', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'text',
+      inputPlaceholder: '请输入用户名',
+    })
+    if (username.value !== userList.value.find(user => user.user_id === user_id)?.username) {
+      ElMessage.error('用户名输入错误，删除失败')
+      return
+    }
+  } catch (error) {
+    console.log(error)
+    if (error === 'cancel') {
+      ElMessage.info('取消删除')
+      return
+    }
+    ElMessage.error('删除失败')
+    return
+  }
+
+  await deleteUser(user_id)
+
+  ElMessage.success('删除成功')
+  await getList()
+}
+
+
+
+// 批量删除
+const handleBatchDelete = async () => {
+  // TODO: batch delete users
 }
 
 const handleResetPwd = (row: User) => {
@@ -194,7 +232,8 @@ const handleSave = async () => {
           <el-button type="success" plain :icon="Edit" @click="handleAdd">新增</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="danger" plain :icon="Delete" :disabled="!multiple" @click="handleDelete">批量删除</el-button>
+          <el-button type="danger" plain :icon="Delete" :disabled="!multiple"
+            @click="handleBatchDelete">批量删除</el-button>
         </el-col>
       </el-row>
 
@@ -220,7 +259,7 @@ const handleSave = async () => {
             <template v-if="row.user_id !== 1">
               <el-button :icon="Key" type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
               <el-button :icon="Edit" type="primary" size="small" @click="handleUpdate(row)" />
-              <el-button :icon="Delete" type="danger" size="small" @click="handleDelete(row)" />
+              <el-button :icon="Delete" type="danger" size="small" @click="handleDelete(row.user_id)" />
             </template>
           </template>
         </el-table-column>

@@ -195,6 +195,26 @@ Task<HttpResponsePtr> UserController::newUser(const HttpRequestPtr req,
     co_return resp;
 }
 
+Task<HttpResponsePtr> UserController::deleteUser(const HttpRequestPtr req,
+                                                 const int user_id) const
+{
+    // 之后通过角色判断
+    if (user_id == 1)
+    {
+        throw CustomException("不能删除超级管理员");
+    }
+    CoroMapper<SysUser> mapper(app().getDbClient());
+    auto count =
+        co_await mapper.updateBy(tuple{SysUser::Cols::_is_delete},
+                                 Criteria{SysUser::Cols::_user_id, user_id},
+                                 1);
+    if (count == 0)
+    {
+        throw BusinessException("用户不存在或已被删除", USER_NOT_EXITS);
+    }
+    co_return HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
+}
+
 template <>
 UserQuery drogon::fromRequest(const HttpRequest &req)
 {

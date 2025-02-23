@@ -324,5 +324,11 @@ plugins:
         - path: /user/([1-9]\\d*)/status/(0|1)
           method: put
           auth_expression: hasRole('admin') or hasAuthority('auth:user:update')
+        - path: /user
+          methods: post
+          auth_expression: hasRole('admin') or hasAuthority('auth:user:insert')
+        - path: /user/([1-9]\\d*)
+          methods: delete
+          auth_expression: hasRole('admin') or hasAuthority('auth:user:delete')
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.
 custom_config: {}
