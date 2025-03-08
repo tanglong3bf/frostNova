@@ -63,3 +63,7 @@ export const newUser = (user: newUser): Promise<{ id: number }> => {
 export const deleteUser = (userId: number): Promise<void> => {
     return request.delete<void, void, void>(`/user/${userId}`)
 }
+
+export const batchDeleteUser = (ids: number[], password: string): Promise<{ message?: string }> => {
+    return request.delete<{ message?: string }, { message?: string }, {ids: number[], password: string}>('/user', { data: {ids, password} })
+}

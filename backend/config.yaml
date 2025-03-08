@@ -318,16 +318,24 @@ plugins:
       # methods are subject to authentication control by default. Default
       # value: []
       path_authorities:
+        # 带条件查询用户列表
         - path: /user
           methods: get
           auth_expression: hasRole('admin') or hasAuthority('auth:user:query')
+        # 更新指定用户状态
         - path: /user/([1-9]\\d*)/status/(0|1)
           method: put
           auth_expression: hasRole('admin') or hasAuthority('auth:user:update')
+        # 创建新用户
         - path: /user
           methods: post
           auth_expression: hasRole('admin') or hasAuthority('auth:user:insert')
+        # 删除指定用户
         - path: /user/([1-9]\\d*)
+          methods: delete
+          auth_expression: hasRole('admin') or hasAuthority('auth:user:delete')
+        # 删除多个用户
+        - path: /user
           methods: delete
           auth_expression: hasRole('admin') or hasAuthority('auth:user:delete')
 # custom_config: custom configuration for users. This object can be get by the app().getCustomConfig() method.

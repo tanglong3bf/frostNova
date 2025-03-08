@@ -29,6 +29,12 @@ struct UserCreate
     std::string phoneNumber;
 };
 
+struct UserBatchDelete
+{
+    std::vector<uint32_t> user_ids;
+    std::string password;
+};
+
 /// @}
 
 class UserController : public drogon::HttpController<UserController>,
@@ -48,6 +54,7 @@ class UserController : public drogon::HttpController<UserController>,
     ADD_METHOD_VIA_REGEX(UserController::deleteUser,
                          "/user/([1-9]\\d*)",
                          Delete);
+    ADD_METHOD_TO(UserController::batchDeleteUsers, "/user", Delete);
 
     METHOD_LIST_END
     Task<HttpResponsePtr> login(const HttpRequestPtr req, UserLogin user) const;
@@ -57,9 +64,12 @@ class UserController : public drogon::HttpController<UserController>,
                                        const int user_id,
                                        const int status) const;
     Task<HttpResponsePtr> newUser(const HttpRequestPtr req,
-                                  UserCreate user) const;
+                                  const UserCreate user) const;
     Task<HttpResponsePtr> deleteUser(const HttpRequestPtr req,
                                      const int user_id) const;
+    Task<HttpResponsePtr> batchDeleteUsers(
+        const HttpRequestPtr req,
+        UserBatchDelete userIdsAndPassword) const;
 };
 
 namespace drogon
@@ -70,4 +80,6 @@ template <>
 UserLogin fromRequest(const HttpRequest &req);
 template <>
 UserCreate fromRequest(const HttpRequest &req);
+template <>
+UserBatchDelete fromRequest(const HttpRequest &req);
 }  // namespace drogon

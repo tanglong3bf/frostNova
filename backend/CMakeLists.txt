@@ -5,6 +5,9 @@ project(FrostNovaBackend CXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
+# 定义一个宏 -D_GLIBCXX_DEBUG
+# add_definitions(-D_GLIBCXX_DEBUG)
+
 include(CheckIncludeFileCXX)
 
 check_include_file_cxx(any HAS_ANY)

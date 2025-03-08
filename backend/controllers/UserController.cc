@@ -6,8 +6,10 @@
 #include <drogon/orm/Criteria.h>
 
 using namespace std;
+using namespace drogon;
 using namespace drogon::orm;
 using namespace drogon_model::FrostNova;
+using namespace trantor;
 using namespace tl::secure;
 using namespace tl::jwt;
 
@@ -51,9 +53,9 @@ Task<HttpResponsePtr> UserController::login(const HttpRequestPtr req,
     {
         userInDb = co_await mapper.findOne(
             Criteria{SysUser::Cols::_username, user.username} &&
-            Criteria{SysUser::Cols::_is_delete, 0});
+            Criteria{SysUser::Cols::_delete_time, CompareOperator::IsNull});
     }
-    catch (const drogon::orm::UnexpectedRows &e)
+    catch (const UnexpectedRows &e)
     {
         LOG_ERROR << e.what();
         throw BusinessException("不存在的用户名", USER_NOT_EXITS);
@@ -98,7 +100,8 @@ Task<HttpResponsePtr> UserController::list(const HttpRequestPtr req,
     CoroMapper<SysUser> mapper(app().getDbClient());
 
     // 只查询未被删除的用户
-    Criteria criteria = Criteria{SysUser::Cols::_is_delete, 0};
+    Criteria criteria =
+        Criteria{SysUser::Cols::_delete_time, CompareOperator::IsNull};
     // 依据参数设置其余查询条件（不包括分页）
     if (!query.username.empty())
     {
@@ -143,7 +146,7 @@ Task<HttpResponsePtr> UserController::list(const HttpRequestPtr req,
         for (const auto &user : userList)
         {
             json["data"]["list"].append(
-                user.toMasqueradedJson(UserController::masqueradingVector()));
+                user.toMasqueradedJson(masqueradingVector()));
         }
     }
     json["data"]["total"] = total;
@@ -169,7 +172,7 @@ Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
     }
     CoroMapper<SysUser> mapper(app().getDbClient());
     auto count =
-        co_await mapper.updateBy(std::tuple{SysUser::Cols::_status},
+        co_await mapper.updateBy(tuple{SysUser::Cols::_status},
                                  Criteria{SysUser::Cols::_user_id, user_id},
                                  status);
     LOG_DEBUG << "update status count: " << count;
@@ -178,13 +181,16 @@ Task<HttpResponsePtr> UserController::updateStatus(const HttpRequestPtr req,
 }
 
 Task<HttpResponsePtr> UserController::newUser(const HttpRequestPtr req,
-                                              UserCreate user) const
+                                              const UserCreate user) const
 {
     auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
     SysUser userInDb;
+    userInDb.setUsername(user.username);
+    userInDb.setNickname(user.nickname);
+    userInDb.setPhone(user.phoneNumber);
     // 默认密码：123456
     userInDb.setPassword(passwordEncoder->encode("123456"));
-    userInDb.setCreateTime(trantor::Date::now());
+    userInDb.setCreateTime(Date::now());
     CoroMapper<SysUser> mapper(app().getDbClient());
 
     userInDb = co_await mapper.insert(userInDb);
@@ -205,12 +211,54 @@ Task<HttpResponsePtr> UserController::deleteUser(const HttpRequestPtr req,
     }
     CoroMapper<SysUser> mapper(app().getDbClient());
     auto count =
-        co_await mapper.updateBy(tuple{SysUser::Cols::_is_delete},
+        co_await mapper.updateBy(tuple{SysUser::Cols::_delete_time},
                                  Criteria{SysUser::Cols::_user_id, user_id},
-                                 1);
+                                 Date::now());
     if (count == 0)
     {
         throw BusinessException("用户不存在或已被删除", USER_NOT_EXITS);
+    }
+    co_return HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
+}
+
+Task<HttpResponsePtr> UserController::batchDeleteUsers(
+    const HttpRequestPtr req,
+    UserBatchDelete userIdsAndPassword) const
+{
+    CoroMapper<SysUser> mapper(app().getDbClient());
+    auto user = req->attributes()->get<User>("user");
+    auto currentUserInDb = co_await mapper.findOne(
+        Criteria{SysUser::Cols::_username, user.username()});
+
+    // 验证密码
+    auto passwordEncoder = DrClassMap::getSingleInstance<PasswordEncoderBase>();
+    if (passwordEncoder->encode(userIdsAndPassword.password) !=
+        currentUserInDb.getValueOfPassword())
+    {
+        throw BusinessException("密码错误", PASSWORD_ERROR);
+    }
+
+    // 之后通过角色判断
+    if (any_of(userIdsAndPassword.user_ids.begin(),
+               userIdsAndPassword.user_ids.end(),
+               [](const int user_id) { return user_id == 1; }))
+    {
+        throw CustomException("不能删除超级管理员");
+    }
+    auto count = co_await mapper.updateBy(tuple{SysUser::Cols::_delete_time},
+                                          Criteria{SysUser::Cols::_user_id,
+                                                   CompareOperator::In,
+                                                   userIdsAndPassword.user_ids},
+                                          Date::now());
+    if (count == 0)
+    {
+        throw BusinessException("用户不存在或已被删除", USER_NOT_EXITS);
+    }
+    else if (count != userIdsAndPassword.user_ids.size())
+    {
+        Json::Value json;
+        json["message"] = "部分用户删除失败";
+        co_return HttpResponse::newHttpJsonResponse(json);
     }
     co_return HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
 }
@@ -232,28 +280,27 @@ UserQuery drogon::fromRequest(const HttpRequest &req)
     auto status = req.getParameter("status");
     if (!status.empty())
     {
-        query.status = std::stoi(status);
+        query.status = stoi(status);
     }
 
     auto createTimeRange = req.getParameter("dateRange");
     if (!createTimeRange.empty())
     {
-        auto createTimes = utils::splitString(createTimeRange, ",");
-        auto startDate = utils::splitString(createTimes[0], "-");
-        query.dateRange[0] = trantor::Date(std::stoi(startDate[0]),
-                                           std::stoi(startDate[1]),
-                                           std::stoi(startDate[2]));
-        auto endDate = utils::splitString(createTimes[1], "-");
-        query.dateRange[1] = trantor::Date(std::stoi(endDate[0]),
-                                           std::stoi(endDate[1]),
-                                           std::stoi(endDate[2]))
+        auto createTimes = splitString(createTimeRange, ",");
+        auto startDate = splitString(createTimes[0], "-");
+        query.dateRange[0] =
+            Date(stoi(startDate[0]), stoi(startDate[1]), stoi(startDate[2]));
+        auto endDate = splitString(createTimes[1], "-");
+        query.dateRange[1] = Date(stoi(endDate[0]),
+                                  stoi(endDate[1]),
+                                  stoi(endDate[2]))
                                  .after(86400);  // +1 day
     }
 
     auto pageStr = req.getParameter("page");
     if (!pageStr.empty())
     {
-        auto page = std::stoi(pageStr);
+        auto page = stoi(pageStr);
         if (page < 1)
         {
             LOG_INFO << "page 参数错误，使用默认值。";
@@ -264,7 +311,7 @@ UserQuery drogon::fromRequest(const HttpRequest &req)
     auto pageSizeStr = req.getParameter("pageSize");
     if (!pageSizeStr.empty())
     {
-        auto pageSize = std::stoi(pageSizeStr);
+        auto pageSize = stoi(pageSizeStr);
         switch (pageSize)
         {
             case 20:
@@ -339,17 +386,50 @@ UserCreate drogon::fromRequest(const HttpRequest &req)
         throw ParamException("缺少必备参数：nickname", PARAM_MISSING);
     }
     auto nickname = json["nickname"].asString();
-    if (!json.isMember("phoneNumber"))
+    string phoneNumber;
+    if (json.isMember("phoneNumber"))
     {
-        throw ParamException("缺少必备参数：phoneNumber", PARAM_MISSING);
-    }
-    auto phoneNumber = json["phoneNumber"].asString();
-    if (phoneNumber.size() != 11)
-    {
-        throw ParamException("手机号码长度错误", PARAM_LENGTH_ERROR);
+        phoneNumber = json["phoneNumber"].asString();
+        if (phoneNumber.size() != 11)
+        {
+            throw ParamException("手机号码长度错误", PARAM_LENGTH_ERROR);
+        }
     }
     user.username = username;
     user.nickname = nickname;
     user.phoneNumber = phoneNumber;
     return user;
+}
+
+template <>
+UserBatchDelete drogon::fromRequest(const HttpRequest &req)
+{
+    auto jsonPtr = req.getJsonObject();
+    if (jsonPtr == nullptr)
+    {
+        throw ParamException("请使用 json 格式传递参数", PARAM_FORMAT_ERROR);
+    }
+    auto &json = *jsonPtr;
+    if (!json.isObject() || !json.isMember("ids") || !json["ids"].isArray())
+    {
+        throw ParamException("缺少必备参数 ids 或者格式错误",
+                             PARAM_FORMAT_ERROR);
+    }
+    if (!json.isObject() || !json.isMember("password") ||
+        !json["password"].isString())
+    {
+        throw ParamException("缺少必备参数 password 或者格式错误",
+                             PARAM_FORMAT_ERROR);
+    }
+    UserBatchDelete result;
+    for (auto &item : json["ids"])
+    {
+        if (!item.isInt())
+        {
+            throw ParamException("数组元素应为整数类型", PARAM_FORMAT_ERROR);
+        }
+        result.user_ids.push_back(item.asUInt());
+    }
+    result.password = json["password"].asString();
+    return result;
 }

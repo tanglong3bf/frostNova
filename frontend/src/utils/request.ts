@@ -79,6 +79,9 @@ instance.interceptors.response.use(
       router.push('/login')
       console.log(router)
     }
+    else if (error.response.status === 403) {
+      ElMessage.error(error.response.data?.error || '缺少权限')
+    }
     else {
       ElMessage.error(error.response.data?.error || 'Error')
     }

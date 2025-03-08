@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElPagination, ElMessage, ElMessageBox, type FormRules } from 'element-plus'
 import { Search, Refresh, Edit, Delete, Key } from '@element-plus/icons-vue'
 import { type User, type UserQuery, type PaginateResponse } from '@/api/user'
-import { getUserList, updateStatus, newUser, deleteUser } from '@/api/user'
+import { getUserList, updateStatus, newUser, deleteUser, batchDeleteUser } from '@/api/user'
 
 const queryParams = reactive<UserQuery>({
   username: undefined,
@@ -121,7 +121,39 @@ const handleDelete = async (user_id: number) => {
 
 // 批量删除
 const handleBatchDelete = async () => {
-  // TODO: batch delete users
+  const ids = userList.value.filter(user =>
+    user.selected).map(user => user.user_id)
+  console.log(ids)
+  let password: string
+  try {
+    await ElMessageBox.confirm('确认批量删除选中的用户吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    const passwd = await ElMessageBox.prompt('请输入密码以确认批量删除', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'password',
+      inputPlaceholder: '请输入密码',
+    })
+    password = passwd.value
+  } catch (error) {
+    console.log(error)
+    if (error === 'cancel') {
+      ElMessage.info('取消批量删除')
+      return
+    }
+    ElMessage.error('批量删除失败')
+    return
+  }
+
+  await batchDeleteUser(ids, password)
+
+  ElMessage.success('批量删除成功')
+
+  await getList()
 }
 
 const handleResetPwd = (row: User) => {
