@@ -28,11 +28,14 @@ const userList = ref<User[]>([])
 const getList = async () => {
   const res: PaginateResponse<User> = await getUserList({
     ...queryParams,
-    page: 1,
-    pageSize: 10,
+    page: currentPage.value,
+    pageSize: pageSize.value,
   })
   console.log(res)
   userList.value = res.list || []
+  total.value = res.total || 0
+  currentPage.value = res.page || 1
+  pageSize.value = res.pageSize || 10
 }
 
 onMounted(() => {
