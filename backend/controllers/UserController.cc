@@ -23,9 +23,9 @@ UserController::UserController()
                          "gender",
                          "avatar",
                          "status",
-                         "is_delete",
                          "create_time",
-                         "update_time"})
+                         "update_time",
+                         "delete_time"})
 {
     enableMasquerading({"user_id",
                         "username",
@@ -36,9 +36,9 @@ UserController::UserController()
                         "gender",
                         "avatar",
                         "status",
-                        "",  // "is_delete"
                         "create_time",
-                        "update_time"});
+                        "update_time",
+                        ""});  // "delete_time"
 }
 
 // Add definition of your processing function here
@@ -263,6 +263,39 @@ Task<HttpResponsePtr> UserController::batchDeleteUsers(
     co_return HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
 }
 
+Task<HttpResponsePtr> UserController::updateUser(const HttpRequestPtr req,
+                                                 const int user_id,
+                                                 const UserUpdate user) const
+{
+    if (user_id != user.user_id)
+    {
+        throw ParamException("user_id 与请求参数不匹配", PARAMETER_ERROR);
+    }
+
+    // TODO: 之后通过角色判断
+    if (user.user_id == 1)
+    {
+        throw CustomException("不能修改超级管理员信息");
+    }
+
+    CoroMapper<SysUser> mapper(app().getDbClient());
+    auto count =
+        co_await mapper.updateBy(tuple{SysUser::Cols::_nickname,
+                                       SysUser::Cols::_phone,
+                                       SysUser::Cols::_update_time},
+                                 Criteria{SysUser::Cols::_user_id, user_id} &&
+                                     Criteria{SysUser::Cols::_delete_time,
+                                              CompareOperator::IsNull},
+                                 user.nickname,
+                                 user.phone,
+                                 Date::now());
+    if (count == 0)
+    {
+        throw BusinessException("用户不存在或已被删除", USER_NOT_EXITS);
+    }
+    co_return HttpResponse::newHttpResponse(k204NoContent, CT_NONE);
+}
+
 template <>
 UserQuery drogon::fromRequest(const HttpRequest &req)
 {
@@ -433,3 +466,36 @@ UserBatchDelete drogon::fromRequest(const HttpRequest &req)
     result.password = json["password"].asString();
     return result;
 }
+
+template <>
+UserUpdate drogon::fromRequest(const HttpRequest &req)
+{
+    auto jsonPtr = req.getJsonObject();
+    if (jsonPtr == nullptr)
+    {
+        throw ParamException("请使用 json 格式传递参数", PARAM_FORMAT_ERROR);
+    }
+
+    auto &json = *jsonPtr;
+    UserUpdate user;
+
+    if (!json.isMember("user_id") || !json["user_id"].isInt())
+    {
+        throw ParamException("缺少必备参数 user_id 或者格式错误",
+                             PARAM_FORMAT_ERROR);
+    }
+    user.user_id = json["user_id"].asUInt();
+
+    user.nickname = json["nickname"].asString();
+    auto phoneStr = json["phone"].asString();
+    if (!phoneStr.empty())
+    {
+        regex pattern(R"(^1[3-9]\d{9}$)");
+        if (!regex_match(phoneStr, pattern))
+        {
+            throw ParamException("手机号码格式错误", PARAM_FORMAT_ERROR);
+        }
+    }
+    user.phone = json["phone"].asString();
+    return user;
+};

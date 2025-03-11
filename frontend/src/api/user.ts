@@ -32,6 +32,12 @@ export interface newUser {
     username: string
 }
 
+export interface UserUpdate {
+    user_id: number
+    nickname: string
+    phone: string
+}
+
 export interface PaginateResponse<T> {
     list: T[]
     total: number
@@ -66,4 +72,8 @@ export const deleteUser = (userId: number): Promise<void> => {
 
 export const batchDeleteUser = (ids: number[], password: string): Promise<{ message?: string }> => {
     return request.delete<{ message?: string }, { message?: string }, {ids: number[], password: string}>('/user', { data: {ids, password} })
+}
+
+export const updateUser = (user: UserUpdate): Promise<void> => {
+    return request.put<void, void, UserUpdate>(`/user/${user.user_id}`, user)
 }
