@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { themes } from '@/styles/themes'
-import AsideMenuComponent from "@/views/layout/components/AsideMenuComponent.vue";
-import HeaderComponent from "@/views/layout/components/HeaderComponent.vue";
+import AsideMenuComponent from "@/layouts/components/AsideMenu.vue";
+import HeaderComponent from "@/layouts/components/Header.vue";
 
 const isCollapse = ref(false)
 

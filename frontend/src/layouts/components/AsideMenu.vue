@@ -110,6 +110,7 @@ const routeName = computed(() => {
     font-weight: 600;
     white-space: nowrap;
     background: linear-gradient(to right, #40a9ff, #36cfc9);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }

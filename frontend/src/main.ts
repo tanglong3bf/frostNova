@@ -10,6 +10,9 @@ import router from './router'
 // 引入element-plus的图标
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
+// 订阅消息
+import './utils/elMessage'
+
 const app = createApp(App)
 // 注册所有的element-plus的图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
